@@ -1,0 +1,63 @@
+import { Router } from "express";
+import { profileController } from "./profile.controller";
+import authorize from "../../middlewares/authorize";
+import { UserRole } from "@prisma/client";
+import validate from "../../middlewares/validate";
+import {
+  updateActiveChapterId,
+  updateActiveQuestionId,
+  updateProfileZod,
+} from "./profile.validation";
+import { upload } from "../../utils/awss3";
+import { updateLessonZod } from "../lesson/lesson.validation";
+
+const router = Router();
+
+router.get(
+  "/",
+  authorize(UserRole.USER, UserRole.ADMIN),
+  profileController.getProfile
+);
+
+router.patch(
+  "/",
+  authorize(UserRole.USER, UserRole.ADMIN),
+  upload.single("image"),
+  validate(updateProfileZod, { formData: true }),
+  profileController.updateProfile
+);
+
+router.patch(
+  "/active-level",
+  authorize(UserRole.USER),
+  profileController.updateActiveLevel
+);
+
+router.patch(
+  "/active-chapter",
+  authorize(UserRole.USER),
+  validate(updateActiveChapterId),
+  profileController.updateActiveChapter
+);
+
+router.patch(
+  "/active-lesson",
+  authorize(UserRole.USER),
+  validate(updateLessonZod),
+  profileController.updateActiveLesson
+);
+
+router.patch(
+  "/active-question",
+  authorize(UserRole.USER),
+  validate(updateActiveQuestionId),
+  profileController.updateActiveQuestion
+);
+
+router.patch(
+  "/reset-level",
+  authorize(UserRole.USER),
+  profileController.resetLevel
+);
+
+export const profileRoutes = router;
