@@ -149,6 +149,7 @@ model Question {
   lesson                     Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   sentenceInEnglish          String?
   sentenceInLearningLanguage String?
+  audio                      String?
   hint                       String?
   fullSentence               String?
   missingWord                String?
