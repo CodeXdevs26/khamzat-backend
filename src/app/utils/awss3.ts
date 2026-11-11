@@ -33,6 +33,17 @@ export const uploadImage = multer({
   },
 });
 
+export const uploadAudio = multer({
+  storage: memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("audio/")) {
+      cb(new ApiError(400, "Only audio files are allowed"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 //upload a single file
 export const uploadToS3 = async (file: TFile): Promise<string> => {
   if (!file) throw new ApiError(400, "File is required");

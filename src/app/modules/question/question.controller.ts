@@ -9,11 +9,12 @@ const getQuestionFilters = (
 ): {
   lessonId?: string;
 } => ({
-  lessonId: typeof req.query.lessonId === "string" ? req.query.lessonId : undefined,
+  lessonId:
+    typeof req.query.lessonId === "string" ? req.query.lessonId : undefined,
 });
 
 const createQuestion = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await questionServices.createQuestion(req.body);
+  const result = await questionServices.createQuestion(req.body, req.file);
 
   sendResponse(res, {
     status: 201,
@@ -52,7 +53,8 @@ const getQuestionsByLesson = handleAsyncRequest(async (req: TRequest, res) => {
 const updateQuestion = handleAsyncRequest(async (req: TRequest, res) => {
   const result = await questionServices.updateQuestion(
     req.params.id as string,
-    req.body
+    req.body,
+    req.file
   );
 
   sendResponse(res, {

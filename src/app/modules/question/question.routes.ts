@@ -4,12 +4,14 @@ import authorize from "../../middlewares/authorize";
 import { UserRole } from "@prisma/client";
 import validate from "../../middlewares/validate";
 import { createQuestionZod, updateQuestionZod } from "./question.validation";
+import { uploadAudio } from "../../utils/awss3";
 
 const router = Router();
 
 router.post(
   "/",
   authorize(UserRole.ADMIN),
+  uploadAudio.single("audio"),
   validate(createQuestionZod),
   questionController.createQuestion
 );
@@ -29,6 +31,7 @@ router.get(
 router.patch(
   "/:id",
   authorize(UserRole.ADMIN),
+  uploadAudio.single("audio"),
   validate(updateQuestionZod),
   questionController.updateQuestion
 );

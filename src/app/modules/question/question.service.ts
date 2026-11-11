@@ -1,13 +1,15 @@
 import ApiError from "../../classes/ApiError";
+import { TFile } from "../../interface/file.interface";
 import { TAuthUser } from "../../interface/global.interface";
 import {
   calculatePagination,
   TPaginationOptions,
 } from "../../utils/paginationCalculation";
 import prisma from "../../utils/prisma";
+import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
 import { CreateQuestionZod, UpdateQuestionZod } from "./question.validation";
 
-const createQuestion = async (payload: CreateQuestionZod) => {
+const createQuestion = async (payload: CreateQuestionZod, file?: TFile) => {
   const chapter = await prisma.chapter.findUnique({
     where: { id: payload.chapterId },
   });
@@ -54,13 +56,19 @@ const createQuestion = async (payload: CreateQuestionZod) => {
       "Question with same index and type already exists!"
     );
 
-  const result = await prisma.question.create({
-    data: {
-      ...payload,
-      type: lesson.lessonType,
-    },
-  });
-  return result;
+  const audioUrl = file ? await uploadToS3(file) : undefined;
+  try {
+    return await prisma.question.create({
+      data: {
+        ...payload,
+        ...(audioUrl ? { audio: audioUrl } : {}),
+        type: lesson.lessonType,
+      },
+    });
+  } catch (error) {
+    if (audioUrl) await deleteFromS3(audioUrl);
+    throw error;
+  }
 };
 
 const getAllQuestions = async (
@@ -278,7 +286,8 @@ const getQuestionsByLesson = async (
 
 const updateQuestion = async (
   questionId: string,
-  payload: UpdateQuestionZod
+  payload: UpdateQuestionZod,
+  file?: TFile
 ) => {
   const question = await prisma.question.findUnique({
     where: { id: questionId },
@@ -347,13 +356,23 @@ const updateQuestion = async (
     );
   }
 
-  const result = await prisma.question.update({
-    where: { id: questionId },
-    data: {
-      ...payload,
-      type: targetType,
-    },
-  });
+  const audioUrl = file ? await uploadToS3(file) : undefined;
+  let result;
+  try {
+    result = await prisma.question.update({
+      where: { id: questionId },
+      data: {
+        ...payload,
+        ...(audioUrl ? { audio: audioUrl } : {}),
+        type: targetType,
+      },
+    });
+  } catch (error) {
+    if (audioUrl) await deleteFromS3(audioUrl);
+    throw error;
+  }
+
+  if (audioUrl && question.audio) await deleteFromS3(question.audio);
   return result;
 };
 
@@ -361,6 +380,7 @@ const deleteQuestion = async (questionId: string) => {
   const result = await prisma.question.delete({
     where: { id: questionId },
   });
+  if (result.audio) await deleteFromS3(result.audio);
   return result;
 };
 
