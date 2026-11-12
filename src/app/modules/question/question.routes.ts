@@ -12,7 +12,7 @@ router.post(
   "/",
   authorize(UserRole.ADMIN),
   uploadAudio.single("audio"),
-  validate(createQuestionZod),
+  validate(createQuestionZod, { formData: true }),
   questionController.createQuestion
 );
 
@@ -32,7 +32,7 @@ router.patch(
   "/:id",
   authorize(UserRole.ADMIN),
   uploadAudio.single("audio"),
-  validate(updateQuestionZod),
+  validate(updateQuestionZod, { formData: true }),
   questionController.updateQuestion
 );
 
