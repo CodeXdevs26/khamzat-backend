@@ -35,6 +35,13 @@ const signUp = async (payload: TSignup) => {
     },
   });
 
+  if (existingUser?.status === UserStatus.DELETED) {
+    throw new ApiError(
+      400,
+      "An account associated with this email was previously deleted!"
+    );
+  }
+
   if (existingUser) throw new ApiError(400, "User already exists!");
 
   const hashedPassword = await bcrypt.hash(payload.password, 10);
