@@ -114,7 +114,8 @@ const refreshToken = handleAsyncRequest(
   }
 );
 
-const logout = handleAsyncRequest(async (_req: Request, res: Response) => {
+const logout = handleAsyncRequest(async (req: TRequest, res: Response) => {
+  if (req.user) await authServices.logout(req.user.id);
   res.clearCookie("dendalarRefreshToken", { httpOnly: true });
   sendResponse(res, {
     message: "Logged out successfully!",

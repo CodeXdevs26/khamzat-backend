@@ -2,6 +2,7 @@ import crypto from "crypto";
 import ApiError from "../../classes/ApiError";
 import prisma from "../../utils/prisma";
 import { sendEmail } from "../../utils/sendEmail";
+import { sendNotification } from "../../utils/sendNotification";
 import { deleteFromS3 } from "../../utils/awss3";
 import {
   TChangePasswordInput,
@@ -20,6 +21,7 @@ import {
 } from "../../utils/paginationCalculation";
 import generateOTP from "../../utils/generateOTP";
 import {
+  NotificationModelType,
   LoginProvider,
   OTPPurpose,
   Prisma,
@@ -185,15 +187,19 @@ const login = async (payload: TLoginInput) => {
   );
 
   // update fcmToken if any
+  // a device token belongs to one account: drop it from any other account
+  // (e.g. a previous user on the same phone), then save it on this one
   if (payload.fcmToken) {
-    await prisma.auth.update({
-      where: {
-        email: payload.email,
-      },
-      data: {
-        fcmToken: payload.fcmToken,
-      },
-    });
+    await prisma.$transaction([
+      prisma.auth.updateMany({
+        where: { fcmToken: payload.fcmToken, NOT: { id: auth.id } },
+        data: { fcmToken: null },
+      }),
+      prisma.auth.update({
+        where: { id: auth.id },
+        data: { fcmToken: payload.fcmToken },
+      }),
+    ]);
   }
 
   return {
@@ -456,7 +462,33 @@ const changeAccountStatus = async (userId: string, status: UserStatus) => {
         : status === UserStatus.DELETED
           ? "Account deleted successfully!"
           : "";
+
+  if (auth.status !== status) {
+    if (status === UserStatus.BLOCKED) {
+      void sendNotification({
+        receiverId: userId,
+        message: "Account blocked",
+        description: "Your account has been blocked by admin.",
+        modelType: NotificationModelType.Auth,
+        referenceId: userId,
+      });
+    } else if (status === UserStatus.ACTIVE) {
+      void sendNotification({
+        receiverId: userId,
+        message: "Account activated",
+        description: "Your account is active again.",
+        modelType: NotificationModelType.Auth,
+        referenceId: userId,
+      });
+    }
+  }
+
   return { message };
+};
+
+const logout = async (userId: string) => {
+  // stop pushes to this device once the user has logged out
+  await prisma.auth.update({ where: { id: userId }, data: { fcmToken: null } });
 };
 
 const refreshToken = async (token: string) => {
@@ -498,4 +530,5 @@ export const authServices = {
   changePassword,
   deleteAccount,
   changeAccountStatus,
+  logout,
 };

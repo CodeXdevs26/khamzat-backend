@@ -1,7 +1,9 @@
 import ApiError from "../../classes/ApiError";
 import { TFile } from "../../interface/file.interface";
 import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
+import { NotificationModelType } from "@prisma/client";
 import prisma from "../../utils/prisma";
+import { sendNotification } from "../../utils/sendNotification";
 import { TUpdateProfile } from "./profile.validation";
 
 const findFirstChapterByLevelId = async (levelId: string) => {
@@ -35,6 +37,65 @@ const findFirstQuestionByLessonId = async (
 
   if (!question) throw new ApiError(404, "Next question not found!");
   return question;
+};
+
+type TProgressPointers = {
+  activeLevelId: string | null;
+  activeChapterId: string | null;
+};
+
+const getProgressPointers = async (
+  userId: string
+): Promise<TProgressPointers> => {
+  const userProfile = await prisma.userProfile.findUnique({
+    where: { authId: userId },
+    select: { activeLevelId: true, activeChapterId: true },
+  });
+  return {
+    activeLevelId: userProfile?.activeLevelId ?? null,
+    activeChapterId: userProfile?.activeChapterId ?? null,
+  };
+};
+
+// Level unlocked wins over chapter completed, so one advance sends one push.
+const notifyProgressChange = async (
+  userId: string,
+  before: TProgressPointers,
+  after: TProgressPointers
+) => {
+  if (after.activeLevelId && after.activeLevelId !== before.activeLevelId) {
+    const level = await prisma.level.findUnique({
+      where: { id: after.activeLevelId },
+      select: { id: true, name: true, index: true },
+    });
+    if (!level) return;
+    void sendNotification({
+      receiverId: userId,
+      message: `Level ${level.index} unlocked!`,
+      description: `${level.name} is now open.`,
+      modelType: NotificationModelType.Level,
+      referenceId: level.id,
+    });
+    return;
+  }
+
+  if (
+    after.activeChapterId &&
+    after.activeChapterId !== before.activeChapterId
+  ) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: after.activeChapterId },
+      select: { id: true, name: true, index: true },
+    });
+    if (!chapter) return;
+    void sendNotification({
+      receiverId: userId,
+      message: "Chapter completed!",
+      description: `Chapter ${chapter.index}: ${chapter.name} is unlocked.`,
+      modelType: NotificationModelType.Chapter,
+      referenceId: chapter.id,
+    });
+  }
 };
 
 const getProfile = async (userId: string) => {
@@ -99,10 +160,12 @@ const updateActiveLevel = async (userId: string) => {
   const nextLevel = await prisma.level.findUniqueOrThrow({
     where: { index: currentLevel.index + 1 },
   });
+  const before = await getProgressPointers(userId);
   const result = await prisma.userProfile.update({
     where: { authId: userId },
     data: { activeLevelId: nextLevel.id },
   });
+  void notifyProgressChange(userId, before, result).catch(() => undefined);
   return result;
 };
 
@@ -141,6 +204,7 @@ const updateActiveChapter = async (userId: string, chapterId: string) => {
     nextChapter = await findFirstChapterByLevelId(nextLevel.id);
   }
 
+  const before = await getProgressPointers(userId);
   const result = await prisma.userProfile.update({
     where: { authId: userId },
     data: {
@@ -148,6 +212,7 @@ const updateActiveChapter = async (userId: string, chapterId: string) => {
       activeChapterId: nextChapter.id,
     },
   });
+  void notifyProgressChange(userId, before, result).catch(() => undefined);
   return result;
 };
 
@@ -205,6 +270,7 @@ const updateActiveLesson = async (userId: string, lessonId: string) => {
     nextLesson = await findFirstLessonByChapterId(nextChapter.id);
   }
 
+  const before = await getProgressPointers(userId);
   const result = await prisma.userProfile.update({
     where: { authId: userId },
     data: {
@@ -213,6 +279,7 @@ const updateActiveLesson = async (userId: string, lessonId: string) => {
       activeLessonId: nextLesson.id,
     },
   });
+  void notifyProgressChange(userId, before, result).catch(() => undefined);
   return result;
 };
 
@@ -326,6 +393,7 @@ const updateActiveQuestion = async (userId: string, questionId: string) => {
     );
   }
 
+  const before = await getProgressPointers(userId);
   const result = await prisma.userProfile.update({
     where: { authId: userId },
     data: {
@@ -335,6 +403,7 @@ const updateActiveQuestion = async (userId: string, questionId: string) => {
       activeQuestionId: nextQuestion.id,
     },
   });
+  void notifyProgressChange(userId, before, result).catch(() => undefined);
   return result;
 };
 

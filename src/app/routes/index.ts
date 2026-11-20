@@ -10,6 +10,7 @@ import { lessonRoutes } from "../modules/lesson/lesson.routes";
 import { questionRoutes } from "../modules/question/question.routes";
 import { profileRoutes } from "../modules/profile/profile.routes";
 import { mascotRoutes } from "../modules/mascot/mascot.routes";
+import { notificationRoutes } from "../modules/notification/notification.routes";
 const router = Router();
 
 const routes = [
@@ -23,6 +24,7 @@ const routes = [
   { path: "/questions", route: questionRoutes },
   { path: "/profile", route: profileRoutes },
   { path: "/mascots", route: mascotRoutes },
+  { path: "/notifications", route: notificationRoutes },
   { path: "/upload-files", route: fileRoutes },
 ];
 

@@ -1,4 +1,5 @@
-import { OTPPurpose, UserStatus } from "@prisma/client";
+import { NotificationModelType, OTPPurpose, UserStatus } from "@prisma/client";
+import { sendNotification } from "../../utils/sendNotification";
 import generateOTP from "../../utils/generateOTP";
 import prisma from "../../utils/prisma";
 import { sendEmail } from "../../utils/sendEmail";
@@ -126,6 +127,13 @@ const verifyOtp = async (payload: TVerifyOtpInput) => {
         const name = updatedAuth.profile?.name || "there";
         const path = "./src/app/emailTemplates/verificationSuccess.html";
         sendEmail(updatedAuth.email, subject, path, { name });
+        void sendNotification({
+          receiverId: updatedAuth.id,
+          message: "Welcome to Dendalar!",
+          description: "Your account is verified. Start learning now.",
+          modelType: NotificationModelType.Auth,
+          referenceId: updatedAuth.id,
+        });
       }
 
       return null;

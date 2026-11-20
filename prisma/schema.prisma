@@ -19,6 +19,7 @@ model Auth {
   otp           OTP?
   profile       Profile?
   userProfile   UserProfile?
+  notifications Notification[]
 
   @@map("auth")
 }
@@ -215,4 +216,25 @@ enum QuestionType {
 enum LessonType {
   SENTENCE
   DIALOGUE
+}
+
+model Notification {
+  id          String                @id @default(uuid())
+  receiverId  String
+  receiver    Auth                  @relation(fields: [receiverId], references: [id], onDelete: Cascade)
+  message     String
+  description String?
+  modelType   NotificationModelType
+  referenceId String?
+  read        Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+
+  @@index([receiverId, read, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationModelType {
+  Auth
+  Level
+  Chapter
 }
