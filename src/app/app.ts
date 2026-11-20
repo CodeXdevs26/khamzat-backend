@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import router from "./routes";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import routeNotFoundHandler from "./middlewares/routeNotFoundHandler";
+import { mountSwagger } from "./docs";
 
 const app: Application = express();
 
@@ -27,6 +28,8 @@ app.use(cookieParser());
 app.get("/health", (_req: Request, res: Response) => {
   res.send("Dendalar server is running! 🚀");
 });
+
+mountSwagger(app);
 
 app.use("/api/v1", router);
 

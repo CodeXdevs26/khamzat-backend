@@ -13,8 +13,8 @@ import { UserRole } from "@prisma/client";
 
 const router = Router();
 
-router.get("/:id", authorize(UserRole.ADMIN), authController.getSingle);
 router.get("/refresh-token", authController.refreshToken);
+router.get("/:id", authorize(UserRole.ADMIN), authController.getSingle);
 router.get("/", authorize(UserRole.ADMIN), authController.getAll);
 router.post("/signup", validate(userSignUpZod), authController.signup);
 router.post("/login", validate(loginZodSchema), authController.login);

@@ -14,6 +14,7 @@ npm run dev                   # ts-node-dev with respawn, entry src/server.ts
 npm run build                 # prisma generate && tsc -> dist/
 npm start                     # node dist/server.js
 npm run seed:admin            # create the ADMIN user from ADMIN_EMAIL / ADMIN_PASSWORD
+npm run seed:dummy            # insert demo content/users/notifications (additive, safe to re-run)
 npm run lint | lint:fix       # ESLint (flat config, eslint.config.mjs)
 npm run format | format:check # Prettier
 
@@ -35,6 +36,7 @@ Copy `.env.example` to `.env`. Config is loaded in [src/app/config/index.ts](src
   - **Services** contain all business logic and Prisma calls. They throw `ApiError(status, message)` for expected failures.
 - **Auth** is handled by [middlewares/authorize.ts](src/app/middlewares/authorize.ts). It reads a `Bearer` access JWT and sets `req.user` (`TAuthUser`: id, email, role). Pass `authorize({ optional: true }, ...roles)` to allow anonymous access. The refresh token is stored in the `dendalarRefreshToken` cookie (see the auth module). Roles are `ADMIN` and `USER`. A user's `status` can be `PENDING`, `ACTIVE`, `BLOCKED` or `DELETED`, and signup and OTP verification depend on it.
 - **Multipart requests** require `validate(schema, { formData: true })`. This JSON-parses `req.body.payload` and replaces `req.body` with the parsed result. Clients send JSON fields in a `payload` form field next to the file. Without `formData`, validation only checks `req.body` and does not change it.
+- **API docs** are an OpenAPI spec in [src/app/docs/](src/app/docs/), served as Swagger UI at `/api-docs` (JSON at `/api-docs.json`; off in production unless `SWAGGER_ENABLED=true`). Request bodies are generated from the modules' Zod schemas, but paths and response shapes are written by hand, so **add or change an entry there whenever you add or change a route**.
 - **Errors** go to [globalErrorHandler.ts](src/app/middlewares/globalErrorHandler.ts), which turns Prisma errors (P2002, P2003, P2025, validation), Zod, JWT and Multer errors into user-facing messages. This is why services usually let unique-constraint and FK errors propagate instead of checking for them first. The response shape is `{ success, message, error, stack? }`. Successful responses have the shape `{ success, message, data }`.
 - **Files** are handled in [utils/awss3.ts](src/app/utils/awss3.ts). It provides the multer instances `upload`, `uploadImage` (jpeg, png or webp, 5MB max) and `uploadAudio`, which keep files in memory, plus `uploadToS3` and `deleteFromS3`. The usual pattern: upload first, run the DB write in a `try` block, and call `deleteFromS3` if the write fails. Also delete the old file from S3 when it is replaced.
 - **Email** is sent by `utils/sendEmail.ts`, which fills `{{placeholders}}` in the HTML templates in `src/app/emailTemplates/` and POSTs them to an external `SEND_EMAIL_URL` service. Template paths are relative to the process cwd (`./src/app/emailTemplates/...`), and `tsc` does not copy them into `dist`.

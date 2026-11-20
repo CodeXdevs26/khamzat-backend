@@ -128,7 +128,16 @@ const signUp = async (payload: TSignup) => {
       sendEmail(payload.email, subject, path, replacements);
     }
 
-    return result;
+    // never expose the password hash or device token
+    return {
+      id: result.id,
+      email: result.email,
+      role: result.role,
+      status: result.status,
+      loginProvider: result.loginProvider,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
   } catch (error: any) {
     throw new ApiError(
       error.statusCode || 500,
