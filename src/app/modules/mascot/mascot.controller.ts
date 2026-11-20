@@ -14,16 +14,18 @@ const getMascot = handleAsyncRequest(async (_req: TRequest, res: Response) => {
   });
 });
 
-const upsertMascot = handleAsyncRequest(async (req: TRequest, res: Response) => {
-  const result = await mascotServices.upsertMascot(
-    req.files as Record<string, TFile[]>
-  );
+const upsertMascot = handleAsyncRequest(
+  async (req: TRequest, res: Response) => {
+    const result = await mascotServices.upsertMascot(
+      req.files as Record<string, TFile[]>
+    );
 
-  sendResponse(res, {
-    message: "Mascot data upserted successfully!",
-    data: result,
-  });
-});
+    sendResponse(res, {
+      message: "Mascot data upserted successfully!",
+      data: result,
+    });
+  }
+);
 
 const removeMascotField = handleAsyncRequest(
   async (req: TRequest, res: Response) => {

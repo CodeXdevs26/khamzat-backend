@@ -14,6 +14,9 @@
     "postinstall": "prisma generate"
   },
   "license": "ISC",
+  "overrides": {
+    "effect": "^3.22.5"
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",

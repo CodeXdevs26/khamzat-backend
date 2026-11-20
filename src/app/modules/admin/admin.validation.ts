@@ -14,11 +14,7 @@ export const earningStatsQueryZod = z
     limit: z.coerce.number().int().positive().optional(),
     searchTerm: z.string().trim().optional(),
     type: z
-      .enum([
-        "COACH_SUBSCRIPTION",
-        "SCOUT_SUBSCRIPTION",
-        "PREMIUM_CONTENT",
-      ])
+      .enum(["COACH_SUBSCRIPTION", "SCOUT_SUBSCRIPTION", "PREMIUM_CONTENT"])
       .optional(),
     year: z.coerce.number().int().min(2000).max(3000).optional(),
     month: z.coerce.number().int().min(1).max(12).optional(),

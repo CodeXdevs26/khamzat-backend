@@ -26,7 +26,9 @@ const updateProfile = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const updateActiveLevel = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await profileServices.updateActiveLevel(req.user?.id as string);
+  const result = await profileServices.updateActiveLevel(
+    req.user?.id as string
+  );
 
   sendResponse(res, {
     message: "Active level updated successfully!",

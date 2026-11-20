@@ -11,7 +11,22 @@ export default [
   },
   eslint.configs.recommended,
   {
-    files: ["**/*.ts", "prisma.config.ts"],
+    // prisma.config.ts lives outside the tsconfig project (rootDir ./src),
+    // so lint it with the TS parser but without type-aware `project` info.
+    files: ["prisma.config.ts"],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: { ecmaVersion: "latest", sourceType: "module" },
+    },
+    plugins: { "@typescript-eslint": tseslint, prettier: prettierPlugin },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      ...prettierConfig.rules,
+      "prettier/prettier": "error",
+    },
+  },
+  {
+    files: ["src/**/*.ts"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -43,12 +58,9 @@ export default [
         "error",
         { argsIgnorePattern: "^_" },
       ],
-      "prettier/prettier": [
-        "error",
-        {
-          endOfLine: "auto", // <--- ignore CRLF vs LF differences
-        },
-      ],
+      // Line endings are normalised to LF by .gitattributes + .prettierrc,
+      // so Prettier's own config is the single source of truth here.
+      "prettier/prettier": "error",
     },
   },
 ];
